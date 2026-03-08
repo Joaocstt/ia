@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mentoria IA — Crie Qualquer Sistema Sem Saber Programar</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --bg2: #0d0d0d;
+    --amber: #f5a623;
+    --amber2: #ffcc66;
+    --amber-dim: rgba(245,166,35,0.10);
+    --white: #f0ede8;
+    --muted: #6b6560;
+    --border: rgba(245,166,35,0.15);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  @media (hover: none) {
+    body { cursor: auto; }
+    .cursor, .cursor-ring { display: none; }
+  }
+
+  .cursor {
+    width: 10px; height: 10px;
+    background: var(--amber);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--amber);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.5;
+    transition: left 0.1s ease, top 0.1s ease;
+  }
+
+  #canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  section { position: relative; z-index: 1; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4rem 4rem;
+    border-bottom: 1px solid transparent;
+    transition: all 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(20px);
+    border-color: var(--border);
+  }
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--amber); }
+  .nav-cta {
+    background: var(--amber);
+    color: #000;
+    padding: 0.6rem 1.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+  .nav-cta:hover {
+    background: var(--amber2);
+    box-shadow: 0 8px 30px rgba(245,166,35,0.3);
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 9rem 4rem 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(245,166,35,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+    flex-wrap: wrap;
+  }
+  .hero-eyebrow-line { width: 36px; height: 1px; background: var(--amber); flex-shrink: 0; }
+  .hero-eyebrow span {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 11vw, 11rem);
+    line-height: 0.9;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+  .hero-title .amber { color: var(--amber); }
+  .hero-title .outline {
+    -webkit-text-stroke: 1px rgba(245,166,35,0.35);
+    color: transparent;
+  }
+  .hero-sub {
+    font-size: clamp(0.95rem, 2vw, 1.15rem);
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 540px;
+    line-height: 1.75;
+    margin-bottom: 2.75rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+  .hero-sub strong { color: var(--white); font-weight: 500; }
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+  .btn-primary {
+    background: var(--amber);
+    color: #000;
+    padding: 0.95rem 2.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.3s;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    background: var(--amber2);
+    box-shadow: 0 12px 40px rgba(245,166,35,0.35);
+    transform: translateY(-2px);
+  }
+  .btn-ghost {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.3s;
+  }
+  .btn-ghost:hover { color: var(--white); }
+  .btn-ghost::after { content: '→'; transition: transform 0.3s; }
+  .btn-ghost:hover::after { transform: translateX(4px); }
+
+  /* floating badge */
+  .hero-badge {
+    position: absolute;
+    right: 6rem; top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    animation: fadeUp 0.8s 1s forwards;
+  }
+  .badge-ring {
+    width: 190px; height: 190px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: spin 20s linear infinite;
+  }
+  .badge-ring::before {
+    content: '';
+    position: absolute;
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 50%;
+    top: -4px; left: 50%;
+    transform: translateX(-50%);
+  }
+  .badge-inner { animation: spin 20s linear infinite reverse; text-align: center; }
+  .badge-inner .num { font-family: var(--font-display); font-size: 3.2rem; color: var(--amber); line-height: 1; }
+  .badge-inner .label { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  /* ─── MARQUEE ─── */
+  .marquee-wrapper {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 1.1rem 0;
+    overflow: hidden;
+    background: rgba(245,166,35,0.025);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 28s linear infinite;
+    white-space: nowrap;
+  }
+  .marquee-item {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 1rem;
+    flex-shrink: 0;
+  }
+  .marquee-dot { width: 4px; height: 4px; background: var(--amber); border-radius: 50%; }
+
+  /* ─── SHARED ─── */
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--amber);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-label::after {
+    content: '';
+    width: 50px; height: 1px;
+    background: var(--amber);
+    opacity: 0.4;
+  }
+
+  /* ─── PROMISE ─── */
+  .promise { padding: 8rem 4rem; }
+  .promise-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+  }
+  .promise-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.8rem, 5.5vw, 5.5rem);
+    line-height: 0.95;
+    margin-bottom: 1.75rem;
+  }
+  .promise-title .amber { color: var(--amber); }
+  .promise-body {
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.85;
+    margin-bottom: 1.5rem;
+  }
+  .promise-body strong { color: var(--white); font-weight: 500; }
+  .promise-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  .stat-card {
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    background: var(--amber-dim);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+  .stat-num { font-family: var(--font-display); font-size: 2.8rem; color: var(--amber); line-height: 1; }
+  .stat-label { font-family: var(--font-mono); font-size: 0.67rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.35rem; }
+
+  /* ─── BUILDS ─── */
+  .builds {
+    padding: 8rem 4rem;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .builds-header { text-align: center; margin-bottom: 4.5rem; }
+  .builds-header .section-label { justify-content: center; }
+  .builds-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    margin-top: 0.75rem;
+    line-height: 1;
+  }
+  .builds-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+  .build-card {
+    background: var(--bg2);
+    padding: 2.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .build-card:hover { background: rgba(245,166,35,0.05); }
+  .build-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 0;
+    background: var(--amber);
+    transition: height 0.4s;
+  }
+  .build-card:hover::before { height: 100%; }
+  .build-num { font-family: var(--font-mono); font-size: 0.68rem; color: var(--amber); opacity: 0.5; margin-bottom: 1.25rem; }
+  .build-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+  .build-name { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.02em; margin-bottom: 0.6rem; }
+  .build-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.75; font-weight: 300; }
+
+  /* ─── MODULES ─── */
+  .modules { padding: 8rem 4rem; }
+  .modules-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+    align-items: end;
+  }
+  .modules-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    line-height: 0.95;
+  }
+  .modules-title .amber { color: var(--amber); }
+  .modules-desc { font-size: 1rem; color: var(--muted); line-height: 1.8; font-weight: 300; }
+  .modules-list { display: flex; flex-direction: column; border: 1px solid var(--border); }
+  .module-item {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1.5rem;
+    transition: background 0.3s;
+    flex-wrap: wrap;
+  }
+  .module-item:last-child { border-bottom: none; }
+  .module-item:hover { background: var(--amber-dim); }
+  .module-num { font-family: var(--font-mono); font-size: 0.67rem; color: var(--amber); opacity: 0.6; flex-shrink: 0; min-width: 60px; }
+  .module-name { font-size: 0.95rem; font-weight: 400; flex: 1; min-width: 160px; }
+  .module-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    padding: 0.28rem 0.75rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .module-tag.hot { border-color: rgba(245,166,35,0.4); color: var(--amber); background: var(--amber-dim); }
+
+  /* ─── FOR WHO ─── */
+  .forWho {
+    padding: 8rem 4rem;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .forWho-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5vw, 4.5rem);
+    margin-top: 0.5rem;
+    margin-bottom: 3.5rem;
+    line-height: 1;
+  }
+  .forWho-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .who-card {
+    border: 1px solid var(--border);
+    padding: 2.25rem;
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .who-card:hover { border-color: rgba(245,166,35,0.4); background: var(--amber-dim); }
+  .who-icon { font-size: 1.7rem; flex-shrink: 0; margin-top: 0.15rem; }
+  .who-title { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.02em; margin-bottom: 0.5rem; }
+  .who-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.75; font-weight: 300; }
+
+  /* ─── CTA ─── */
+  .cta-section {
+    padding: 10rem 4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cta-section .section-label { justify-content: center; }
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 9vw, 8rem);
+    line-height: 0.9;
+    margin-bottom: 2rem;
+  }
+  .cta-title .amber { color: var(--amber); }
+  .cta-title .outline { -webkit-text-stroke: 1px rgba(245,166,35,0.3); color: transparent; }
+  .cta-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 460px;
+    margin: 0 auto 3rem;
+    line-height: 1.75;
+  }
+  .cta-buttons { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .footer-logo { font-family: var(--font-mono); font-size: 0.72rem; color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase; }
+  .footer-copy { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+
+  body::after {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.022;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1100px) {
+    .hero-badge { right: 3rem; }
+    .promise-grid { gap: 3.5rem; }
+    .builds-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 860px) {
+    nav { padding: 1.2rem 1.5rem; }
+    .nav-links { display: none; }
+
+    .hero { padding: 7.5rem 1.5rem 4rem; }
+    .hero-badge { display: none; }
+
+    .marquee-wrapper { padding: 1rem 0; }
+
+    .promise { padding: 5rem 1.5rem; }
+    .promise-grid { grid-template-columns: 1fr; gap: 3rem; }
+
+    .builds { padding: 5rem 1.5rem; }
+    .builds-grid { grid-template-columns: 1fr; }
+
+    .modules { padding: 5rem 1.5rem; }
+    .modules-header { grid-template-columns: 1fr; gap: 1.5rem; }
+    .module-item { padding: 1.25rem 1.25rem; gap: 1rem; }
+    .module-num { min-width: auto; }
+
+    .forWho { padding: 5rem 1.5rem; }
+    .forWho-grid { grid-template-columns: 1fr; }
+
+    .cta-section { padding: 6rem 1.5rem; }
+    .cta-section::before { width: 300px; height: 300px; }
+
+    footer { padding: 2rem 1.5rem; justify-content: center; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title { font-size: clamp(3rem, 16vw, 4.5rem); }
+    .hero-sub { font-size: 0.95rem; }
+    .hero-actions { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+
+    .promise-stats { grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .stat-num { font-size: 2.2rem; }
+
+    .module-item { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .module-tag { align-self: flex-start; }
+
+    .who-card { flex-direction: column; }
+
+    .cta-title { font-size: clamp(2.8rem, 14vw, 4rem); }
+    .cta-buttons { flex-direction: column; align-items: center; }
+
+    .builds-header .builds-title { font-size: clamp(2rem, 9vw, 3rem); }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<canvas id="canvas"></canvas>
+
+<nav id="nav">
+  <div class="nav-logo">Mentoria IA</div>
+  <ul class="nav-links">
+    <li><a href="#promise">Proposta</a></li>
+    <li><a href="#builds">O que criar</a></li>
+    <li><a href="#modules">Módulos</a></li>
+    <li><a href="#forWho">Para quem</a></li>
+  </ul>
+  <a href="https://wa.me/5568999106046?text=Olá, quero saber mais sobre a Mentoria IA!" class="nav-cta">Quero começar</a>
+</nav>
+
+<section class="hero">
+  <div>
+    <div class="hero-eyebrow">
+      <div class="hero-eyebrow-line"></div>
+      <span>Desenvolvimento com IA — Sem saber programar</span>
+    </div>
+    <h1 class="hero-title">
+      CRIE<br>
+      <span class="amber">QUALQUER</span><br>
+      <span class="outline">SISTEMA</span>
+    </h1>
+    <p class="hero-sub">
+      <strong>Sem precisar saber programar.</strong> Aprenda a usar IA para construir sistemas completos do zero — com você na direção e a inteligência artificial executando.
+    </p>
+    <div class="hero-actions">
+      <a href="https://wa.me/5568999106046?text=Olá, quero garantir minha vaga na Mentoria IA!" class="btn-primary">Garantir minha vaga</a>
+      <a href="#modules" class="btn-ghost">Ver conteúdo</a>
+    </div>
+  </div>
+  <div class="hero-badge">
+    <div class="badge-ring">
+      <div class="badge-inner">
+        <div class="num">10</div>
+        <div class="label">Módulos<br>práticos</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="marquee-wrapper">
+  <div class="marquee-track">
+    <div class="marquee-item"><span class="marquee-dot"></span>Sem código</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>IA como copiloto</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Sistemas reais</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Do zero ao deploy</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Agentes autônomos</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Qualquer ideia</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>100% prático</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Projetos reais</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Sem código</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>IA como copiloto</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Sistemas reais</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Do zero ao deploy</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Agentes autônomos</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Qualquer ideia</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>100% prático</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Projetos reais</div>
+  </div>
+</div>
+
+<section class="promise" id="promise">
+  <div class="promise-grid">
+    <div>
+      <div class="section-label reveal">A proposta</div>
+      <h2 class="promise-title reveal reveal-delay-1">
+        IA NÃO<br>SUBSTITUI.<br>
+        <span class="amber">MULTIPLICA.</span>
+      </h2>
+      <p class="promise-body reveal reveal-delay-2">
+        Você não precisa mais saber programar para criar software. A IA escreve o código — você só precisa saber <strong>o que quer construir</strong> e como <strong>dirigir a conversa</strong> com ela.
+      </p>
+      <p class="promise-body reveal reveal-delay-3">
+        Nesta mentoria você aprende a <strong>pensar como produto</strong>, usar IA como sua equipe de desenvolvimento e entregar sistemas reais que antes levariam meses e milhares de reais.
+      </p>
+    </div>
+    <div class="promise-stats reveal reveal-delay-2">
+      <div class="stat-card">
+        <div class="stat-num">10×</div>
+        <div class="stat-label">Mais velocidade<br>de entrega</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Linhas de código<br>para memorizar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Sistemas que<br>você pode criar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Prático com<br>projetos reais</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="builds" id="builds">
+  <div class="builds-header">
+    <div class="section-label reveal">O que você vai construir</div>
+    <h2 class="builds-title reveal reveal-delay-1">SISTEMAS REAIS,<br>DO ZERO.</h2>
+  </div>
+  <div class="builds-grid">
+    <div class="build-card reveal">
+      <div class="build-num">01</div>
+      <div class="build-icon">🛒</div>
+      <div class="build-name">E-COMMERCE</div>
+      <div class="build-desc">Loja completa com catálogo, carrinho, pagamento e painel admin. Do banco de dados à interface final — sem digitar uma linha.</div>
+    </div>
+    <div class="build-card reveal reveal-delay-1">
+      <div class="build-num">02</div>
+      <div class="build-icon">📊</div>
+      <div class="build-name">DASHBOARD SaaS</div>
+      <div class="build-desc">Plataforma com login, múltiplos usuários, gráficos e relatórios. A IA monta a arquitetura e você define a lógica de negócio.</div>
+    </div>
+    <div class="build-card reveal reveal-delay-2">
+      <div class="build-num">03</div>
+      <div class="build-icon">🤖</div>
+      <div class="build-name">APP COM IA</div>
+      <div class="build-desc">Sistema que usa modelos de linguagem para automatizar tarefas, gerar conteúdo e responder usuários — construído com IA, pela IA.</div>
+    </div>
+    <div class="build-card reveal reveal-delay-3">
+      <div class="build-num">04</div>
+      <div class="build-icon">🔐</div>
+      <div class="build-name">API REST</div>
+      <div class="build-desc">Backend completo com autenticação, CRUD e documentação gerada automaticamente. Você descreve, a IA implementa.</div>
+    </div>
+    <div class="build-card reveal reveal-delay-4">
+      <div class="build-num">05</div>
+      <div class="build-icon">🏢</div>
+      <div class="build-name">SISTEMA INTERNO</div>
+      <div class="build-desc">CRM, ERP simples ou sistema de gestão personalizado para seu negócio ou de clientes. Totalmente adaptado à sua necessidade.</div>
+    </div>
+    <div class="build-card reveal reveal-delay-5">
+      <div class="build-num">06</div>
+      <div class="build-icon">⚡</div>
+      <div class="build-name">SEU PROJETO</div>
+      <div class="build-desc">Traga sua ideia. A mentoria te dá o método para transformar qualquer conceito em sistema funcional — sem precisar de um desenvolvedor.</div>
+    </div>
+  </div>
+</section>
+
+<section class="modules" id="modules">
+  <div class="modules-header">
+    <div>
+      <div class="section-label reveal">Conteúdo</div>
+      <h2 class="modules-title reveal reveal-delay-1">
+        10 MÓDULOS<br>
+        <span class="amber">100%</span><br>PRÁTICOS
+      </h2>
+    </div>
+    <p class="modules-desc reveal reveal-delay-2">
+      Do zero absoluto ao sistema funcionando. Cada módulo foi estruturado para você aprender fazendo — sem teoria desnecessária, sem enrolação.
+    </p>
+  </div>
+  <div class="modules-list reveal">
+    <div class="module-item">
+      <span class="module-num">MOD 01</span>
+      <span class="module-name">Como a IA constrói software — entendendo o novo paradigma</span>
+      <span class="module-tag">Fundamentos</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 02</span>
+      <span class="module-name">Ferramentas de IA para desenvolvimento — o ecossistema atual</span>
+      <span class="module-tag">Setup</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 03</span>
+      <span class="module-name">Como dar instruções precisas — a arte de prompts de engenharia</span>
+      <span class="module-tag hot">⚡ Core</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 04</span>
+      <span class="module-name">Arquitetura de sistemas — pensando como produto antes do código</span>
+      <span class="module-tag">Estratégia</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 05</span>
+      <span class="module-name">Banco de dados e backend — a IA monta, você valida</span>
+      <span class="module-tag hot">⚡ Core</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 06</span>
+      <span class="module-name">Frontend e interfaces — criando telas profissionais sem design</span>
+      <span class="module-tag hot">⚡ Core</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 07</span>
+      <span class="module-name">Autenticação, segurança e boas práticas — sem abrir mão da qualidade</span>
+      <span class="module-tag">Segurança</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 08</span>
+      <span class="module-name">Construindo um sistema completo do zero — projeto guiado</span>
+      <span class="module-tag hot">🔥 Projeto</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 09</span>
+      <span class="module-name">Testes e correções com IA — garantindo que tudo funciona</span>
+      <span class="module-tag">Qualidade</span>
+    </div>
+    <div class="module-item">
+      <span class="module-num">MOD 10</span>
+      <span class="module-name">Deploy em produção — colocando seu sistema no ar</span>
+      <span class="module-tag hot">🔥 Final</span>
+    </div>
+  </div>
+</section>
+
+<section class="forWho" id="forWho">
+  <div class="section-label reveal">Para quem é</div>
+  <h2 class="forWho-title reveal reveal-delay-1">ESSA MENTORIA<br>É PARA VOCÊ SE...</h2>
+  <div class="forWho-grid">
+    <div class="who-card reveal">
+      <div class="who-icon">💡</div>
+      <div>
+        <div class="who-title">TEM UMA IDEIA</div>
+        <div class="who-desc">Você tem um projeto na cabeça mas nunca soube como executar. Agora, com IA, a barreira técnica não existe mais — só a sua vontade importa.</div>
+      </div>
+    </div>
+    <div class="who-card reveal reveal-delay-1">
+      <div class="who-icon">💼</div>
+      <div>
+        <div class="who-title">EMPREENDEDOR</div>
+        <div class="who-desc">Quer construir seu MVP sem depender de desenvolvedor para cada mudança. Aprenda a criar e evoluir seu produto com total autonomia.</div>
+      </div>
+    </div>
+    <div class="who-card reveal reveal-delay-2">
+      <div class="who-icon">🚀</div>
+      <div>
+        <div class="who-title">FREELANCER</div>
+        <div class="who-desc">Quer entregar projetos para clientes sem ser desenvolvedor. A IA executa, você entrega. Cobrar por sistemas completos passa a ser realidade.</div>
+      </div>
+    </div>
+    <div class="who-card reveal reveal-delay-3">
+      <div class="who-icon">🌱</div>
+      <div>
+        <div class="who-title">INICIANTE TOTAL</div>
+        <div class="who-desc">Nunca programou na vida e acha que isso é um obstáculo. Não é. Esta mentoria foi feita exatamente para quem está começando do zero.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section" id="cta">
+  <div class="section-label reveal">Próximo passo</div>
+  <h2 class="cta-title reveal reveal-delay-1">
+    COMECE A<br>
+    <span class="amber">CONSTRUIR</span><br>
+    <span class="outline">AGORA.</span>
+  </h2>
+  <p class="cta-sub reveal reveal-delay-2">
+    Vagas limitadas. A próxima turma começa em breve. Garanta seu lugar e transforme sua relação com tecnologia para sempre.
+  </p>
+  <div class="cta-buttons reveal reveal-delay-3">
+    <a href="https://wa.me/5568999106046?text=Olá, quero garantir minha vaga na Mentoria IA!" class="btn-primary">Quero minha vaga agora</a>
+    <a href="#modules" class="btn-ghost">Ver os módulos</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Mentoria IA</div>
+  <div class="footer-copy">© 2025 — Desenvolvimento com IA. Todos os direitos reservados.</div>
+</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = (mx - 5) + 'px';
+    cursor.style.top  = (my - 5) + 'px';
+    ring.style.left   = (mx - 18) + 'px';
+    ring.style.top    = (my - 18) + 'px';
+  });
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  function resizeCanvas() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const pts = Array.from({length: 55}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.4 + 0.3,
+    dx: (Math.random() - 0.5) * 0.28,
+    dy: (Math.random() - 0.5) * 0.28,
+    o: Math.random() * 0.45 + 0.1,
+  }));
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(245,166,35,${p.o})`;
+      ctx.fill();
+      p.x += p.dx; p.y += p.dy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+    });
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+        if (d < 115) {
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.strokeStyle = `rgba(245,166,35,${0.07 * (1 - d / 115)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
